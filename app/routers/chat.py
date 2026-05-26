@@ -88,7 +88,7 @@ def convert_message_for_api(messages: List[ChatMessage]) -> List[Dict[str, str]]
     OpenAI API需要的消息格式是字典列表，每个字典包含role和content字段
 
     Args:
-        message(List[ChatMessage]): 自定义的消息对象列表
+        messages(List[ChatMessage]): 自定义的消息对象列表
 
     Returns:
         List[Dict[str, str]]: OpenAI API格式的消息列表
@@ -118,6 +118,7 @@ async def generate_stream_response(request: ChatRequest, username: str):
 
     """
 
+    print("xxxxxxx" +request.model_dump_json())
     try:
         # 转换消息格式为OpenAI API需要的格式
         api_messages = convert_message_for_api(request.messages)
@@ -125,7 +126,7 @@ async def generate_stream_response(request: ChatRequest, username: str):
         # 调用OpenAI流式API
         stream = client.chat.completions.create(
             model=request.model or config.MODEL_NAME,  # 使用指定模型或默认模型
-            message=api_messages,  # 对话历史
+            messages=api_messages,  # 对话历史
             max_tokens=request.max_tokens,  # 最大token数
             temperature=request.temperature,  # 创造性温度
             stream=True  # 启用流式输出
@@ -154,12 +155,13 @@ async def generate_stream_response(request: ChatRequest, username: str):
 
                 # 格式化为SSE格式并发送 生成器
                 # SSE格式 "data:{json_data}\n\n"
-                yield f"data:{response_data.model_dump_json()}\n\n"
+                yield f"data: {response_data.model_dump_json()}\n\n"
 
                 # 异步让出控制权，避免阻塞事件循环
                 # 这对于处理大量并发请求很重要
                 await asyncio.sleep(0.1)
 
+        print("xxxxxxxxxxxx"+accumulate_content)
         # 流式响应结束后的处理
         if accumulate_content:
             # 构建结束信号响应
@@ -244,6 +246,7 @@ async def chat(
 
         # 根据请求类型处理: 流式 vs 非流式
         if request.stream:
+            print("这是流式输出")
             # ===== 流式输出处理 =====
             # 返回流式响应
             # StreamingResponse用于处理SSE协议
@@ -296,9 +299,11 @@ async def chat(
                     status_code=500,
                     detail="AI模型返回了空响应"
                 )
-    except HTTPException:
+    except HTTPException as e:
         # 重新抛出HTTP异常(如配额限制)
-        raise
+        # raise
+        error_message = f"处理聊天请求时发生错误:{str(e)}"
+        raise HTTPException(status_code=500, detail=error_message)
     except Exception as e:
         # 捕获所有其他异常并转换为HTTP异常
         error_message = f"处理聊天请求时发生错误:{str(e)}"
@@ -340,7 +345,7 @@ async def get_models(
 
 
 @router.delete("/history")
-async def clear_user_hisotyr(
+async def clear_user_history(
         current_user: Annotated[User, Depends(get_current_active_user)]
 ):
     """

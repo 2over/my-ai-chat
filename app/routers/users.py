@@ -22,7 +22,7 @@ password_hash = PasswordHash.recommended()
 # OAuth2密码Bearer令牌方案
 # tokenURl: 获取token的端点URL, 必须与实际的token端点路径匹配，是给swagger中的登录使用的
 # 告诉FastAPI和前端客户端在哪里获取访问令牌，会自动在请求头中获取Bearer后面的token
-oauth2_schema = OAuth2PasswordBearer(tokenUrl="/users/token")
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/users/token")
 
 
 # 创建路由器实例
@@ -31,7 +31,7 @@ router = APIRouter()
 
 
 # Pydantic数据模型定义
-class LogiRequest(BaseModel):
+class LoginRequest(BaseModel):
     """
         用户登录输入的模型
     """
@@ -365,9 +365,7 @@ async def register_user(user: UserCreate) -> User:
 
 
 @router.post("/logout", summary="用户退出", description="用户退出登录")
-async def logout(
-        current_user: Annotated[User, Depends(get_current_active_user)]
-) -> dict:
+async def logout(current_user: Annotated[User, Depends(get_current_active_user)]) -> dict:
     """
     用户退出登录端点
 

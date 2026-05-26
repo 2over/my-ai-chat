@@ -1,9 +1,11 @@
 from importlib import reload
 
 from fastapi import FastAPI
-from fastapi.middleware import CORSMiddleware
+from fastapi.middleware.cors import CORSMiddleware
 
 from app.routers import users, chat
+
+app = FastAPI(title="聊天机器人", version="1.0.0", description="基于fastapi + Vue的聊天机器人")
 
 # 添加CORS中间件，允许前端跨域访问
 app.add_middleware(
@@ -15,7 +17,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-app = FastAPI(title="聊天机器人", version="1.0.0", description="基于fastapi + Vue的聊天机器人")
 
 app.include_router(users.router, prefix="/users", tags=["用户管理"])
 app.include_router(chat.router, prefix="/chat", tags=["聊天管理"])
